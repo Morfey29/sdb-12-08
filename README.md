@@ -60,7 +60,7 @@
   
   Резервное копирование (логический дамп):
 
-```bash
+```bash```
 bash
 # Создание дампа базы данных "mydb" в пользовательском формате (сжатый, с возможностью выборочного восстановления)
 pg_dump -h localhost -U postgres -F c -b -v -f /backup/mydb.backup mydb
@@ -70,10 +70,11 @@ pg_dump -h localhost -U postgres -F c -b -v -f /backup/mydb.backup mydb
     -b — включение больших объектов.
 
     -v — подробный вывод.
-```
+```bash```
+  
   Восстановление:
 
-```bash
+```bash```
 bash
 
 # Предварительно создаём пустую базу (если её нет)
@@ -83,7 +84,7 @@ createdb -h localhost -U postgres newdb
 pg_restore -h localhost -U postgres -d newdb -v /backup/mydb.backup
 
     -d newdb — целевая база данных.
-```
+```bash```
 
 2.1.* Возможно ли автоматизировать этот процесс? Если да, то как?
 
@@ -106,71 +107,71 @@ pg_restore -h localhost -U postgres -d newdb -v /backup/mydb.backup
     Создание полного бэкапа:
        Ключевой информацией здесь является конечное значение LSN, которое записывается в метаданные этого бэкапа.
     
-    ```bash
-    bash
+```bash```
+bash
 
-    mysqlbackup --user=root --password=*** \
-       --backup-dir=/backups/mysql/full \
-       backup-and-apply-log
+mysqlbackup --user=root --password=*** \
+--backup-dir=/backups/mysql/full \
+backup-and-apply-log
 
-        --backup-dir указывает директорию для сохранения файлов бэкапа.
+--backup-dir указывает директорию для сохранения файлов бэкапа.
 
-        backup-and-apply-log создает полную резервную копию и подготавливает (применяет журналы) её для последующего восстановления.
-    ```
+backup-and-apply-log создает полную резервную копию и подготавливает (применяет журналы) её для последующего восстановления.
+```bash```
 
-  Создание инкрементного (или дифференциального) бэкапа:
-    Для создания инкрементного бэкапа используется опция --incremental или --incremental-with-redo-log-only, а также опция --incremental-base, которая автоматически определяет LSN последнего бэкапа.
+    Создание инкрементного (или дифференциального) бэкапа:
+      Для создания инкрементного бэкапа используется опция --incremental или --incremental-with-redo-log-only, а также опция --incremental-base, которая автоматически определяет LSN последнего бэкапа.
 
         Для создания дифференциального бэкапа (включает все изменения с момента последнего полного бэкапа):
         Параметр history:last_full_backup указывает утилите использовать самый последний полный бэкап в качестве базы для сравнения .
         
-        ```bash
-        bash
+```bash```
+bash
 
-        mysqlbackup --user=root --password=*** \
-           --backup-dir=/backups/mysql/diff_wednesday \
-           --incremental \
-           --incremental-base=history:last_full_backup \
-           backup
-        ```
+mysqlbackup --user=root --password=*** \
+--backup-dir=/backups/mysql/diff_wednesday \
+--incremental \
+--incremental-base=history:last_full_backup \
+backup
+```bash```
 
         Для создания истинно инкрементного бэкапа (включает только изменения с момента последнего любого бэкапа — полного или инкрементного):
         Параметр history:last_backup указывает утилите найти LSN последнего успешного бэкапа (неважно, полного или инкрементного) .
         
-        ```bash
-        bash
+```bash```
+ bash
 
-        # Первый инкрементный бэкап после полного
-        mysqlbackup --user=root --password=*** \
-           --backup-dir=/backups/mysql/inc1 \
-           --incremental \
-           --incremental-base=history:last_backup \
-           backup
+# Первый инкрементный бэкап после полного
+mysqlbackup --user=root --password=*** \
+--backup-dir=/backups/mysql/inc1 \
+--incremental \
+--incremental-base=history:last_backup \
+backup
 
-        # Второй инкрементный бэкап (будет содержать изменения только с момента inc1)
-        mysqlbackup --user=root --password=*** \
-           --backup-dir=/backups/mysql/inc2 \
-           --incremental \
-           --incremental-base=history:last_backup \
-           backup
-        ```
+# Второй инкрементный бэкап (будет содержать изменения только с момента inc1)
+mysqlbackup --user=root --password=*** \
+--backup-dir=/backups/mysql/inc2 \
+--incremental \
+--incremental-base=history:last_backup \
+backup
+```bash```
 
-  Подготовка к восстановлению:
-    Чтобы восстановить данные из цепочки "полный бэкап + инкрементные", их необходимо объединить. Для этого последовательно применяются инкрементные бэкапы к полному.
+    Подготовка к восстановлению:
+      Чтобы восстановить данные из цепочки "полный бэкап + инкрементные", их необходимо объединить. Для этого последовательно применяются инкрементные бэкапы к полному.
 
-    ```bash
-    bash
+```bash```
+bash
 
-    # Применяем первый инкрементный бэкап к полному
-    mysqlbackup --backup-dir=/backups/mysql/full \
-       --incremental-backup-dir=/backups/mysql/inc1 \
-       apply-incremental-backup
+# Применяем первый инкрементный бэкап к полному
+mysqlbackup --backup-dir=/backups/mysql/full \
+--incremental-backup-dir=/backups/mysql/inc1 \
+apply-incremental-backup
 
-    # Затем применяем второй инкрементный бэкап
-    mysqlbackup --backup-dir=/backups/mysql/full \
-       --incremental-backup-dir=/backups/mysql/inc2 \
-       apply-incremental-backup
-    ```
+# Затем применяем второй инкрементный бэкап
+mysqlbackup --backup-dir=/backups/mysql/full \
+--incremental-backup-dir=/backups/mysql/inc2 \
+apply-incremental-backup
+```bash```
 
     После выполнения этих команд директория /backups/mysql/full будет содержать полные, актуальные данные на момент создания последнего инкрементного бэкапа и готова к восстановлению .
 
